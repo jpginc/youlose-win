@@ -1,4 +1,3 @@
-deviceSpecific(){
+otherAlert(){
     alert("windows");
 }
-document.addEventListener('deviceready', deviceSpecific, false);
