@@ -49,5 +49,6 @@
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
     <icon src="icons/winphone/icon-62-tile.png" gap:platform="winphone" />
     <icon src="icons/winphone/icon-173-tile.png" gap:platform="winphone" gap:role="background" />
+    <gap:plugin name="File" value="org.apache.cordova.core.FileUtils" />
     <access origin="http://127.0.0.1*" />
 </widget>
