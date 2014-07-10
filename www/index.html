@@ -23,7 +23,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="format-detection" content="telephone=no" />
-    <link rel="stylesheet" type="text/css" href="css/style.css" />
+    <link rel="stylesheet" type="text/css" href="css/main.css" />
     <link rel="stylesheet" type="text/css" href="css/jquery.mobile-1.4.3.min.css" />
     <script type="text/javascript" src="phonegap.js"></script>
     <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
@@ -32,9 +32,11 @@
     <title>You Lost</title>
 </head>
 <body>
-<div data-role="page" id="loseButton" data-theme="a">
-    <div data-role="content" role="main">
-        <img src="css/images/button.svg">
+<div data-role="page" id="loseBtn" data-theme="a">
+    <div data-role="content" role="main" id="loseBtnDiv">
+        <a href="#user">
+            <img id="iLostBtn" src="css/images/button.svg">
+        </a>
     </div>
 </div>
 </body>

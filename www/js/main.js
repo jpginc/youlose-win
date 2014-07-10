@@ -15,11 +15,13 @@ var controller = (function() {
         if(typeof data.toPage === "string") { 
             log("to page: "  + data.toPage, 1);
             hash = $.mobile.path.parseUrl(data.toPage).hash.substring(1);
+            event.preventDefault();
 
             if((page = document.getElementById(hash)) === null) {
                 $.mobile.loading("show");
-                event.preventDefault();
                 view.getPage(hash, data, dataReady, loadingFailed);
+            } else {
+                dataReady($(page));
             }
         }
         return;
@@ -29,7 +31,7 @@ var controller = (function() {
         $.mobile.loading("hide");
         loading = false;
         log(page.html());
-        $.mobile.pageContainer.pagecontainer("change", page);
+        $.mobile.pageContainer.pagecontainer("change", page, {changeHash: false});
         return;
     }
 
@@ -164,7 +166,7 @@ function View() {
     function getMenu() {
         var navbar;
         if(!menu) {
-            menu = getDiv("menu", "footer").attr("data-position","fixed").append(
+            menu = getDiv("menu", "footer").attr({"data-position":"fixed","data-id":"menu"}).append(
                     getDiv("navbar", "navbar").append(getUL));
         }
         return menu.clone();
@@ -175,7 +177,7 @@ function View() {
         var li;
         for(var i = 0; i < menuItems.length; i++) {
             li = $("<li>");
-            li.append($("<a>", {href: menuItems[i] + ".html",
+            li.append($("<a>", {href: "#" +  menuItems[i],
                 "data-icon": menuIcons[i], "data-role":"button"}));
             ul.append(li);
         }
