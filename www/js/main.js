@@ -1,79 +1,70 @@
 var controller = (function() {
-    var errorReportingLevel = 0;
+    var errorReportingLevel = 1;
     var isInitialized = false;
-    var view = new View();
-    var loading = false;
+    var view;
+    var pageLoader;
 
-    function loadPage(event, data) {
-        var page;
-        var hash;
-
-        if(loading) {
-            view.abort();
-        }
-
-        if(typeof data.toPage === "string") { 
-            log("to page: "  + data.toPage, 1);
-            hash = $.mobile.path.parseUrl(data.toPage).hash.substring(1);
-            event.preventDefault();
-
-            if((page = document.getElementById(hash)) === null) {
-                $.mobile.loading("show");
-                view.getPage(hash, data, dataReady, loadingFailed);
-            } else {
-                dataReady($(page));
-            }
-        }
-        return;
-    }
-
-    function dataReady(page) {
-        $.mobile.loading("hide");
-        loading = false;
-        log(page.html());
-        $.mobile.pageContainer.pagecontainer("change", page, {changeHash: false});
-        return;
-    }
-
-    function loadingFailed(data, errorMessage) {
-        $.mobile.loading("hide");
-        alert(errorMessage);
-        loading = false;
-        return;
-    }
-
+    //priority 10 is the highest, 1 is the lowes
     function log(toLog, priority) {
-        if(priority === undefined || errorReportingLevel < priority) {
+        if(errorReportingLevel < priority) {
             console.log(toLog);
-            return true;
         }
-        return false;
+        return publicMethods;
     }
 
     function initialize() {
         if(isInitialized) {
-            return;
+            return false;
         }
+        log("initializing..", 1);
         isInitialized = true;
-        $( document ).on( "pagecontainerbeforechange", loadPage);
-        $.mobile.linkBindingEnabled = true;
-        $.mobile.ajaxEnabled = true;
+        view = new View(this);
+        log("view done", 1);
+        pageLoader = new PageLoader();
+        log("page loader done", 1);
+        view.loading();
+        pageLoader.loadPage("user", view.change);
+        log("initializing done", 1);
+        return publicMethods;
+    }
 
-        var test1 = new Date();
-        var test2 = new Date();
-        //alert(niceString(dayHourMinSec(test1.getTime(), test2.getTime() + 1234211)));
-        return;
+    function loadPage(toLoad) {
+        view.loading();
+        pageLoader.loadPage(toLoad, view.change);
+        return publicMethods;
+    }
+
+    function navClick(event) {
+       loadPage($(this).attr("data-linkto"));
+    }
+
+    function resume() {
+        alert("resuming!");
+        return publicMethods;
+    }
+
+    function fetchData(key) {
+    }
+
+    function saveData(key) {
     }
     
-    return {
+    var publicMethods = {
         log: log,
-        initialize: initialize
+        initialize: initialize,
+        loadPage: loadPage,
+        resume: resume,
+        fetchData: fetchData,
+        navClick: navClick
     };
+
+    return publicMethods;
 })();
 
 if (navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry)/)) {
     // will only work on mobile devices
     document.addEventListener("deviceready", controller.initialize, false);
+    document.addEventListener("resume", controller.resume, false);
 } else {
     //for desktop
     $(document).ready(controller.initialize);
@@ -84,37 +75,45 @@ var youLoseUser = (function() {
 
     function loadData(data) {
         data = data || newUser();
-        return;
+        if(data === "undefined") {
+                    controller.log("data is the string undefined. might be an error saving data", 9);
+                }
+        return publicMethods;
     }
 
     function newUser() {
-        return; 
+        return {
+            lastLoss: undefined,
+            lossHistory: ""
+        };
     }
 
     function initialize(controller) {
         controller = controller;
         loadData(controller.fetchData("user"));
-        return; 
+        return publicMethods;
     }
 
-    function getLastLoss(controller) {
+    function getLastLoss() {
         return data.lastLoss;
     }
     function newLoss() {
         data.lastLoss = new Date().getTime();
-        return; 
+        data.lossHistory += "," + data.lastLoss;
+        return publicMethods;
     }
 
     function toString() {
-        return data && JSON.stringify(data) || 
-            controller && controller.log("error: user data is falsy");
+        return JSON.stringify(data);
     }
 
-    return {
+    var publicMethods = {
         initialize: initialize ,
         getLastLoss: getLastLoss,
         newLoss: newLoss
     };
+
+    return publicMethods;
 })();
 function dayHourMinSec(date1, date2) {
     if(! isAnInt(date1) || ! isAnInt(date2)) {
@@ -151,44 +150,113 @@ function niceString(dhmsArray) {
     return dhmsArray[0] + "D : " + dhmsArray[1] + "H : " + dhmsArray[2] + "m : " + dhmsArray[3] + "s";
 }
 function View() {
-    var menu;
-    var menuItems = ["Me","Stats","Broadcast","Friends","More"];
-    var menuIcons = ["user","cloud","audio","heart","plus"];
-    
-    function getPage(requestedPage, dataObject, successCallback, failCallback) {
-        var newPage = getDiv(requestedPage, "page").append(
-                getDiv(requestedPage, "content").append(getMenu()));
-        $('body').append(newPage);
-        successCallback(newPage);
-        return newPage;
-    }
-
-    function getMenu() {
-        var navbar;
-        if(!menu) {
-            menu = getDiv("menu", "footer").attr({"data-position":"fixed","data-id":"menu"}).append(
-                    getDiv("navbar", "navbar").append(getUL));
-        }
-        return menu.clone();
-    }
-
-    function getUL() {
-        var ul = $("<ul>");
-        var li;
-        for(var i = 0; i < menuItems.length; i++) {
-            li = $("<li>");
-            li.append($("<a>", {href: "#" +  menuItems[i],
-                "data-icon": menuIcons[i], "data-role":"button"}));
-            ul.append(li);
-        }
-        return ul;
-    }
-
-    function getDiv(id, dataRole) {
-        return $("<div>", {id: id, "data-role": dataRole});
-    }
-    return {
-        getPage: getPage,
-        abort: true
+    //a jquery dom object that is already inserted into the tree
+    this.change = function(to) {
+        $.mobile.loading("hide");
+        controller.log("about to change!", 1);
+        $.mobile.pageContainer.pagecontainer("change", to, {changeHash: false, transition: "slide"});
+        controller.log("changed", 1);
+        return this;
     };
+
+    this.loading = function(off) {
+        if(off === false) {
+            $.mobile.loading("hide");
+        } else {
+            $.mobile.loading("show");
+        }
+        return this;
+    };
+
+    return this;
 }
+function PageLoader() {
+    var body = $("body");
+    var pages = {
+        errorPage: errorPage(),
+        Info: infoPage(),
+    };
+
+
+    //inserts the page to the dom (if required) and returns
+    //the widget
+    this.loadPage = function(toLoad, callback) {
+        if(! pages[toLoad]) {
+            controller.log("page not found!", 4);
+            toLoad = "errorPage";
+        } 
+        insertToDom(pages[toLoad]);
+        callback(pages[toLoad]);
+        return this;
+    };
+
+    function insertToDom(page) {
+        if(document.getElementById(page.attr("id")) === null) {
+            controller.log("page not in dom yet, inserting...", 1);
+            controller.log("html:" + page.html(), 1);
+            $("body").append(page);
+        }
+        return;
+    }
+
+    function navBar() {
+        var postfix = ".png";
+        var prefix = "css/images/Button_";
+        var buttons = ["Info", "World", "Broadcast", "Friends", "More"];
+        var nav = getElement("div", {class: "navBar"}); //, "data-role": "navbar"});
+
+        //populate the nav bar with nav images
+        if(Modernizr.svg) {
+            postfix = ".svg";
+        } 
+        for(var i = 0; i < buttons.length; i++) {
+            var imgContainer = getElement('div', {class: "navImageContainer"});
+            var img = getElement("img", {class: "navImage",
+                src: prefix + buttons[i] + postfix,
+                "data-linkto": buttons[i]});
+            img.on("vmousedown", controller.navClick);
+            imgContainer.append(img);
+            nav.append(imgContainer);
+        }
+        controller.log("nav html: " + nav.html(), 1);
+
+        //put the nav into a footer container
+        var container = getElement("div", {class: "navContainer", "data-position": "fixed", 
+            "data-id":"menu", "data-tap-toggle":false, "data-role":"footer"});
+        container.append(nav);
+        return container;
+    }
+
+    //to do make this a dialog
+    function errorPage(){
+        controller.log("making error page", 3);
+
+        var page = getDiv("errorPage", "page");
+        var content = getDiv("errorContent", "content");
+        var text = document.createElement("h1").innerHTML = "Error Loading Page!";
+        content.append(text);
+        page.append([content, navBar()]);
+        return page;
+    }
+
+    function infoPage() {
+        var page = getDiv("infoPage", "page");
+        var content = getDiv("infoPageContent", "content");
+        var text = document.createElement("h1").innerHTML = "Info bro!";
+        content.append(text);
+        page.append([content, navBar()]);
+        return page;
+    }
+
+    return this;
+}
+function getDiv(id, dataRole) {
+    return getElement("div", {id: id, "data-role": dataRole}); 
+}
+
+function getElement(type, attrs) {
+    return $(document.createElement(type)).attr(attrs);
+}
+localData = (function() {
+
+})();
