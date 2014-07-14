@@ -12,11 +12,41 @@ html, body {
     right: 0;
     top: 0;
 }
-#iLostBtnPng,  #iLostBtnSvg {
-    margin-top:10%;
+/*
+#youLosePopup {
+    height:100%;
+    z-index:100001;
+}
+#youLosePopupShadow {
+    background-color:black;
+    opacity:.5;
+    filter:Alpha(Opacity=50);
+    position:absolute;
+    z-index:1;
+    width:100%;
+    height:100%;
+}
+*/
+#youLosePopup-popup {
+    width:95%;
+    height:95%;
+}
+#youLosePopup {
+    border-style:none !important;
+    width:100%;
+    height:100%;
+}
+#youLoseBtn {
+    position:absolute;
     height:80%;
     width:auto;
-    display:none;
+    max-height:80%;
+    max-width:80%;
+    margin:auto;
+    top:0;
+    bottom:0;
+    left:0;
+    right:0;
     -webkit-border-radius:50%;
     -moz-border-radius:50%;
     border-radius:50%;
@@ -24,8 +54,7 @@ html, body {
     -moz-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.75);
     box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.75);
 }
-
-#iLostBtnPng.clicked,  #iLostBtnSvg.clicked {
+#youLoseBtn.clicked{
     -webkit-box-shadow : 0px 0px 0px 0px rgba(0,0,0,0);
     -moz-box-shadow : 0px 0px 0px 0px rgba(0,0,0,0);
     box-shadow : 0px 0px 0px 0px rgba(0,0,0,0);
@@ -38,22 +67,22 @@ html, body {
 .ui-page {
     -webkit-backface-visibility: hidden;
 }
-.navContainer {
+.footer {
     height:10%;
     min-height:50px;
     background-color:white !important;
     border:none !important;
 }
-.navBar {
+.navbar {
     height:100%;
 }
-.navImageContainer {
+.navImgContainer {
     background-color:rgb(233, 233, 233);
     width:20%;
     height:100%;
     float:left;
 }
-.navImage {
+.navImg {
     min-width:50px;
     max-width:100%;
     max-height:100%;

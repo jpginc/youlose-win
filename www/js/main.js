@@ -1,8 +1,9 @@
 var controller = (function() {
-    var errorReportingLevel = 1;
+    var errorReportingLevel = 0;
     var isInitialized = false;
     var view;
     var pageLoader;
+    var ignoreClicks = false;
 
     //priority 10 is the highest, 1 is the lowes
     function log(toLog, priority) {
@@ -18,13 +19,13 @@ var controller = (function() {
         }
         log("initializing..", 1);
         isInitialized = true;
-        view = new View(this);
+        view = new View(publicMethods);
         log("view done", 1);
-        pageLoader = new PageLoader();
+        pageLoader = new PageLoader(publicMethods);
         log("page loader done", 1);
-        view.loading();
         pageLoader.loadPage("user", view.change);
         log("initializing done", 1);
+        view.lostBtn(pageLoader.lostBtn()).showBtn();
         return publicMethods;
     }
 
@@ -35,7 +36,13 @@ var controller = (function() {
     }
 
     function navClick(event) {
-       loadPage($(this).attr("data-linkto"));
+        if(ignoreClicks) {
+            log("ignoring a click", 1);
+            return;
+        }
+        ignoreClicks = true;
+        window.setTimeout(function() { ignoreClicks = false;}, 200);
+        loadPage($(this).attr("data-link-to"));
     }
 
     function resume() {
@@ -48,6 +55,12 @@ var controller = (function() {
 
     function saveData(key) {
     }
+
+    function doLoss(btn) {
+        log("lose!", 1);
+        view.pressBtn(btn);
+        //view.lostBtn(btn, true);
+    }
     
     var publicMethods = {
         log: log,
@@ -55,7 +68,8 @@ var controller = (function() {
         loadPage: loadPage,
         resume: resume,
         fetchData: fetchData,
-        navClick: navClick
+        navClick: navClick,
+        doLoss: doLoss
     };
 
     return publicMethods;
@@ -63,11 +77,16 @@ var controller = (function() {
 
 if (navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry)/)) {
     // will only work on mobile devices
+    controller.log("mobile startup", 1);
     document.addEventListener("deviceready", controller.initialize, false);
     document.addEventListener("resume", controller.resume, false);
 } else {
     //for desktop
-    $(document).ready(controller.initialize);
+    $(document).ready(function() {
+        controller.log("desktop startup", 1);
+        
+        controller.initialize();
+    });
 }
 var youLoseUser = (function() {
     var data;
@@ -149,15 +168,68 @@ function niceString(dhmsArray) {
     }
     return dhmsArray[0] + "D : " + dhmsArray[1] + "H : " + dhmsArray[2] + "m : " + dhmsArray[3] + "s";
 }
-function View() {
-    //a jquery dom object that is already inserted into the tree
+function View(controller) {
+    var lostBtnHandle;
+    var myself = this;
+
+    //a jquery dom object that is already inserted into the dom
     this.change = function(to) {
         $.mobile.loading("hide");
         controller.log("about to change!", 1);
-        $.mobile.pageContainer.pagecontainer("change", to, {changeHash: false, transition: "slide"});
+        $.mobile.pageContainer.pagecontainer("change", to, {changeHash: false, transition: "none"});
         controller.log("changed", 1);
         return this;
     };
+
+    this.lostBtn = function(btn) {
+        lostBtnHandle = btn;
+        //initialise the popup;
+        lostBtnHandle.popup();
+        return this;
+    };
+
+    this.pressBtn = function(btn) {
+        btn.find("img").addClass("clicked");
+        setTimeout(function() {
+            btn.find("img").removeClass("clicked");
+            setTimeout(function() {
+                btn.popup("close");
+            }, 200);
+        },200);
+        return this;
+    };
+
+    this.showBtn = function(dismiss) {
+        var popupOptions = {
+            dismissible: false,
+            history: false,
+            shadow: false,
+        };
+        var openOptions = {
+            "position-to": "window",
+            x: 0,
+            y: 0,
+        };
+
+        if(lostBtnHandle === undefined) {
+            controller.log("lostBtn undefined", 5);
+            return this;
+        }
+        if(dismiss) {
+            lostBtnHandle.popup("close");
+        } else {
+            setTimeout(function() { 
+                myself.loading();
+                setTimeout(function() {
+                    lostBtnHandle.popup("option", popupOptions);
+                    lostBtnHandle.popup("open", openOptions);
+                    myself.loading(false);
+                }, 500);
+            }, 100);
+        }
+        return this;
+    };
+
 
     this.loading = function(off) {
         if(off === false) {
@@ -170,84 +242,185 @@ function View() {
 
     return this;
 }
-function PageLoader() {
-    var body = $("body");
-    var pages = {
-        errorPage: errorPage(),
-        Info: infoPage(),
-    };
+function PageLoader(conteroller) {
+    testAppendContent();
 
+    var body = $("body");
+    var navbarHtml;
+    var pages = {
+        error: errorPage(),
+        info: infoPage(),
+    };
 
     //inserts the page to the dom (if required) and returns
     //the widget
     this.loadPage = function(toLoad, callback) {
         if(! pages[toLoad]) {
             controller.log("page not found!", 4);
-            toLoad = "errorPage";
+            toLoad = "error";
         } 
-        insertToDom(pages[toLoad]);
-        callback(pages[toLoad]);
+        callback(insertToDom(toLoad));
         return this;
     };
 
     function insertToDom(page) {
-        if(document.getElementById(page.attr("id")) === null) {
+        var domElement = document.getElementById(page + "Page");
+        if(domElement === null) {
             controller.log("page not in dom yet, inserting...", 1);
-            controller.log("html:" + page.html(), 1);
-            $("body").append(page);
+            controller.log("html:" + pages[page].html(), 1);
+            pages[page].on("vclick", ".navbar img", controller.navClick);
+            pages[page].on("dragstart", ".navbar img", function() {return false;});
+            $("body").append(pages[page]);
         }
-        return;
+        return pages[page];
     }
 
-    function navBar() {
+    function navbar() {
+        if(navbarHtml) {
+            return navbarHtml;
+        }
+
         var postfix = ".png";
         var prefix = "css/images/Button_";
-        var buttons = ["Info", "World", "Broadcast", "Friends", "More"];
-        var nav = getElement("div", {class: "navBar"}); //, "data-role": "navbar"});
+        var buttons = ["info", "World", "Broadcast", "Friends", "More"];
+        var footerOptions = {
+            class: "footer",
+            "data-position": "fixed",
+            "data-id": "menu",
+            "data-tap-toggle": false,
+            "data-role": "footer"
+        };
+        var footer = createElement("div", footerOptions);
+        var nav = createElement("div", {class: "navbar"}); //, "data-role": "navbar"});
+
+        var imgContainer = createElement("div", {class: "navImgContainer"});
+        var imgOptions = {class:"navImg",src: "", "data-link-to": ""};
+        var navHtml = "";
 
         //populate the nav bar with nav images
         if(Modernizr.svg) {
             postfix = ".svg";
         } 
         for(var i = 0; i < buttons.length; i++) {
-            var imgContainer = getElement('div', {class: "navImageContainer"});
-            var img = getElement("img", {class: "navImage",
-                src: prefix + buttons[i] + postfix,
-                "data-linkto": buttons[i]});
-            img.on("vmousedown", controller.navClick);
-            imgContainer.append(img);
-            nav.append(imgContainer);
+            var img;
+            imgOptions.src = prefix + buttons[i] + postfix;
+            imgOptions["data-link-to"] = buttons[i];
+            img = createElement("img", imgOptions);
+            navHtml += appendContent(imgContainer, img);
         }
-        controller.log("nav html: " + nav.html(), 1);
+        nav = appendContent(nav, navHtml);
+        footer = appendContent(footer, nav);
+        controller.log("nav html: " + footer, 1);
 
-        //put the nav into a footer container
-        var container = getElement("div", {class: "navContainer", "data-position": "fixed", 
-            "data-id":"menu", "data-tap-toggle":false, "data-role":"footer"});
-        container.append(nav);
-        return container;
+        navbarHtml = footer;
+
+        return footer;
     }
 
     //to do make this a dialog
     function errorPage(){
         controller.log("making error page", 3);
+        var pageOptions = {
+            "data-role": "page",
+            id: "errorPage"
+        };
+        var contentOptions = {
+            "data-role": "content",
+            id: "errorPageContent"
+        };
 
-        var page = getDiv("errorPage", "page");
-        var content = getDiv("errorContent", "content");
-        var text = document.createElement("h1").innerHTML = "Error Loading Page!";
-        content.append(text);
-        page.append([content, navBar()]);
-        return page;
+        var page = createElement("div", pageOptions);
+        var contentDiv = createElement("div", contentOptions);
+        var content  = createElement("h1", {}, "Error Loading Page!");
+        contentDiv = appendContent(contentDiv, content );
+        page = appendContent(page, [contentDiv, navbar()]);
+        return $(page);
     }
 
     function infoPage() {
-        var page = getDiv("infoPage", "page");
-        var content = getDiv("infoPageContent", "content");
-        var text = document.createElement("h1").innerHTML = "Info bro!";
-        content.append(text);
-        page.append([content, navBar()]);
-        return page;
+        var pageOptions = {
+            "data-role": "page",
+            id: "infoPage"
+        };
+        var contentOptions = {
+            "data-role": "content",
+            id:"infoPageContent"
+        };
+        var page = createElement("div", pageOptions);
+        var contentDiv = createElement("div", contentOptions);
+        var content  = createElement("h1", {}, "info Bro!");
+
+        contentDiv = appendContent(contentDiv, content );
+        page = appendContent(page, [contentDiv, navbar()]);
+        return $(page);
     }
 
+    this.lostBtn = function() {
+        var pageOptions = {
+            "data-role": "popup",
+            id: "youLosePopup",
+            "data-overlay-theme": "b"
+        };
+
+        var imgOptions = {
+            alt: "youLOST Button",
+            src: "css/images/button." + (Modernizr.svg ? "svg" : "png"),
+            id: "youLoseBtn"
+        };
+
+        var popup = createElement("div", pageOptions);
+        var content = createElement("img", imgOptions);
+        popup = $(appendContent(popup, content));
+        popup.popup();
+        popup.on("vclick","img", function() { 
+            controller.doLoss(popup);
+            });
+        popup.on("dragstart", "img", function() {return false;});
+        return popup;
+    };
+
+    function createElement(type, options, content) {
+        var element = "<" + type; 
+        for(var key in options) {
+            var obj = options[key];
+            if(options.hasOwnProperty(key)) {
+                element += " " + key + '="' + options[key] + '"';
+            }
+        }
+        element += ">" + (content || "")  + "</" + type + ">";
+        return element;
+    }
+
+    function appendContent(existing, toAppend) {
+        var regex = /<\/[^>]+>$/;
+        var newStr = existing.replace(regex, function(match) {
+            return arrayToOneString(toAppend) + match;
+            });
+        if(toAppend !== undefined && newStr === existing) {
+            return existing + toAppend;
+        }
+        return newStr;
+    }
+    function testAppendContent() {
+        var str1 = "<div><h1>please be here</h1>";
+        var str2 = "hello";
+        var str3 = appendContent(str1 + "</div>", str2); 
+        if(str3 !== str1 + str2 + "</div>") {
+            console.log("appendContent test failed");
+        }
+        return;
+    }
+
+    function arrayToOneString(array) {
+        if(typeof array === "string") {
+            return array;
+        }
+        var str = "";
+        for(var i = 0; i < array.length; i++) {
+            str += "" + array[i];
+        }
+        return str;
+    }
     return this;
 }
 function getDiv(id, dataRole) {
