@@ -380,7 +380,7 @@ function PageLoader(conteroller) {
 
         var imgOptions = {
             alt: "youLOST Button",
-            src: "css/images/Button_Lost." + (Modernizr.svg ? "svg" : "png"),
+            src: "css/images/Button_Lost." + (useSvg() ? "svg" : "png"),
             id: "youLoseBtn"
         };
 
