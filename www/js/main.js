@@ -2,7 +2,9 @@ var controller = (function() {
     var errorReportingLevel = 0;
     var isInitialized = false;
     var view;
+    var localData;
     var pageLoader;
+    var user;
     var ignoreClicks = false;
 
     //priority 10 is the highest, 1 is the lowes
@@ -17,15 +19,18 @@ var controller = (function() {
         if(isInitialized) {
             return false;
         }
-        log("initializing..", 1);
         isInitialized = true;
+
+        log("initializing..", 1);
+        localData = new LocalData();
+        user = new User(publicMethods);
         view = new View(publicMethods);
         log("view done", 1);
         pageLoader = new PageLoader(publicMethods);
         log("page loader done", 1);
         pageLoader.loadPage("user", view.change);
         log("initializing done", 1);
-        view.lostBtn(pageLoader.lostBtn()).showBtn();
+        view.lostBtn(pageLoader.lostBtn(user)).showBtn();
         return publicMethods;
     }
 
@@ -50,16 +55,18 @@ var controller = (function() {
         return publicMethods;
     }
 
-    function fetchData(key) {
+    function get(key) {
+        return localData.get(key);
     }
 
-    function saveData(key) {
+    function save(key, value) {
+        return localData.save(key, value);
     }
 
     function doLoss(btn) {
         log("lose!", 1);
+        user.lose();
         view.pressBtn(btn);
-        //view.lostBtn(btn, true);
     }
     
     var publicMethods = {
@@ -67,7 +74,8 @@ var controller = (function() {
         initialize: initialize,
         loadPage: loadPage,
         resume: resume,
-        fetchData: fetchData,
+        get: get,
+        save: save,
         navClick: navClick,
         doLoss: doLoss
     };
@@ -88,55 +96,51 @@ if (navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry)/)) {
         controller.initialize();
     });
 }
-var youLoseUser = (function() {
+function User(controller) {
     var data;
-    var controller;
 
-    function loadData(data) {
-        data = data || newUser();
+    this.loadData = function(toLoad) {
+        data = toLoad ? $.parseJSON(toLoad) : newUser();
         if(data === "undefined") {
-                    controller.log("data is the string undefined. might be an error saving data", 9);
-                }
-        return publicMethods;
-    }
+            controller.log("data is the string undefined. might be an error saving data", 9);
+        } 
+        return this;
+    };
 
     function newUser() {
-        return {
-            lastLoss: undefined,
+        return { lastLoss: undefined,
             lossHistory: ""
         };
     }
 
-    function initialize(controller) {
-        controller = controller;
-        loadData(controller.fetchData("user"));
-        return publicMethods;
-    }
-
-    function getLastLoss() {
-        return data.lastLoss;
-    }
-    function newLoss() {
-        data.lastLoss = new Date().getTime();
-        data.lossHistory += "," + data.lastLoss;
-        return publicMethods;
-    }
-
-    function toString() {
-        return JSON.stringify(data);
-    }
-
-    var publicMethods = {
-        initialize: initialize ,
-        getLastLoss: getLastLoss,
-        newLoss: newLoss
+    this.initialize = function() {
+        return this;
     };
 
-    return publicMethods;
-})();
+    this.getLastLoss = function() {
+        return data ? data.lastLoss : undefined;
+    };
+    this.lose = function() {
+        if(data && data.lastLoss) {
+            data.lossHistory = data.lossHistory ? 
+                data.lossHistory + "," + data.lastLoss : data.lastLoss;
+        }
+        data.lastLoss = new Date().getTime();
+        controller.save("user", this.toString());
+        return this;
+    };
+
+    this.toString = function() { 
+        return JSON.stringify(data);
+    };
+
+    this.loadData(controller.get("user"));
+    return this;
+}
 function dayHourMinSec(date1, date2) {
     if(! isAnInt(date1) || ! isAnInt(date2)) {
-            return undefined;
+        controller.log("date 1 or 2 isn't an int", 1);
+        return undefined;
     }
     // get total seconds between the times
     var delta = Math.abs(date1 - date2) / 1000;
@@ -161,12 +165,20 @@ function isAnInt(number) {
     return !isNaN(number) && parseInt(Number(number)) == number;
 }
 function niceString(dhmsArray) {
+    if(dhmsArray === undefined) {
+        controller.log("htmls array is undeinfed)");
+        return "You've never LOST!";
+    }
     for(var i =0; i < 4; i++) {
         if(! isAnInt(dhmsArray[i])) {
-            return undefined;
+            controller.log("invalid element in dhmsArray", 1);
+            return "You've never LOST!";
         }
     }
     return dhmsArray[0] + "D : " + dhmsArray[1] + "H : " + dhmsArray[2] + "m : " + dhmsArray[3] + "s";
+}
+function getNiceTimeString(from) {
+    return niceString(dayHourMinSec(new Date().getTime(), from));
 }
 function View(controller) {
     var lostBtnHandle;
@@ -189,9 +201,9 @@ function View(controller) {
     };
 
     this.pressBtn = function(btn) {
-        btn.find("img").addClass("clicked");
+        btn.find("#btnShadow").addClass("clicked");
         setTimeout(function() {
-            btn.find("img").removeClass("clicked");
+            btn.find("#btnShadow").removeClass("clicked");
             setTimeout(function() {
                 btn.popup("close");
             }, 200);
@@ -316,6 +328,24 @@ function PageLoader(conteroller) {
 
         return footer;
     }
+    
+    function lossTimer(user) {
+        var lossString = getNiceTimeString(user.getLastLoss());
+        var pageOptions = {
+            "data-role": "header",
+            id: "lossTimer"
+        };
+        var contentOptions = {
+            "data-role": "content",
+            id: "errorPageContent"
+        };
+
+        var page  = createElement("div", pageOptions);
+        var content  = createElement("h1", {}, lossString);
+        page = appendContent(page, content);
+        return page;
+
+    }
 
     //to do make this a dialog
     function errorPage(){
@@ -355,7 +385,7 @@ function PageLoader(conteroller) {
         return $(page);
     }
 
-    this.lostBtn = function() {
+    this.lostBtn = function(user) {
         var pageOptions = {
             "data-role": "popup",
             id: "youLosePopup",
@@ -369,8 +399,10 @@ function PageLoader(conteroller) {
         };
 
         var popup = createElement("div", pageOptions);
+        var contentWrapper= createElement("div", {id: "btnShadow"});
         var content = createElement("img", imgOptions);
-        popup = $(appendContent(popup, content));
+        contentWrapper = appendContent(contentWrapper, content);
+        popup = $(appendContent(popup, [lossTimer(user), contentWrapper]));
         popup.popup();
         popup.on("vclick","img", function() { 
             controller.doLoss(popup);
