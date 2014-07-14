@@ -83,19 +83,6 @@ var controller = (function() {
     return publicMethods;
 })();
 
-if (navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry|Windows)/)) {
-    // will only work on mobile devices
-    controller.log("mobile startup", 1);
-    document.addEventListener("deviceready", controller.initialize, false);
-    document.addEventListener("resume", controller.resume, false);
-} else {
-    //for desktop
-    $(document).ready(function() {
-        controller.log("desktop startup", 1);
-        
-        controller.initialize();
-    });
-}
 function User(controller) {
     var data;
 
@@ -280,8 +267,8 @@ function PageLoader(conteroller) {
         if(domElement === null) {
             controller.log("page not in dom yet, inserting...", 1);
             controller.log("html:" + pages[page].html(), 1);
-            pages[page].on("vclick", ".navbar img", controller.navClick);
-            pages[page].on("dragstart", ".navbar img", function() {return false;});
+            pages[page].on("vclick", ".navImg", controller.navClick);
+            pages[page].on("dragstart", ".navImg", function() {return false;});
             $("body").append(pages[page]);
         }
         return pages[page];
@@ -292,8 +279,8 @@ function PageLoader(conteroller) {
             return navbarHtml;
         }
 
-        var postfix = ".png";
-        var prefix = "css/images/Button_";
+        var postfix = '.png) no-repeat scroll center center / auto 100% transparent;"';
+        var prefix = 'background:url(css/images/Button_';
         var buttons = ["info", "World", "Broadcast", "Friends", "More"];
         var footerOptions = {
             class: "footer",
@@ -305,20 +292,18 @@ function PageLoader(conteroller) {
         var footer = createElement("div", footerOptions);
         var nav = createElement("div", {class: "navbar"}); //, "data-role": "navbar"});
 
-        var imgContainer = createElement("div", {class: "navImgContainer"});
-        var imgOptions = {class:"navImg",src: "", "data-link-to": ""};
+        var imgOptions = {class:"navImg",style: "", "data-link-to": ""};
         var navHtml = "";
 
         //populate the nav bar with nav images
         if(useSvg()) {
-            postfix = ".svg";
+            postfix = '.svg) no-repeat scroll center center / auto 100% transparent;"';
         } 
         for(var i = 0; i < buttons.length; i++) {
             var img;
-            imgOptions.src = prefix + buttons[i] + postfix;
+            imgOptions.style = prefix + buttons[i] + postfix;
             imgOptions["data-link-to"] = buttons[i];
-            img = createElement("img", imgOptions);
-            navHtml += appendContent(imgContainer, img);
+            navHtml += createElement("div", imgOptions);
         }
         nav = appendContent(nav, navHtml);
         footer = appendContent(footer, nav);
@@ -395,15 +380,15 @@ function PageLoader(conteroller) {
 
         var imgOptions = {
             alt: "youLOST Button",
-            src: "css/images/button." + (Modernizr.svg ? "svg" : "png"),
+            src: "css/images/Button_Lost." + (Modernizr.svg ? "svg" : "png"),
             id: "youLoseBtn"
         };
 
         var popup = createElement("div", pageOptions);
-        var contentWrapper= createElement("div", {id: "btnShadow"});
+        //var contentWrapper= createElement("div", {id: "btnShadow"});
         var content = createElement("img", imgOptions);
-        contentWrapper = appendContent(contentWrapper, content);
-        popup = $(appendContent(popup, [lossTimer(user), contentWrapper]));
+        //contentWrapper = appendContent(contentWrapper, content);
+        popup = $(appendContent(popup, [lossTimer(user), content]));
         popup.popup();
         popup.on("vclick","img", function() { 
             controller.doLoss(popup);
@@ -467,6 +452,11 @@ function getDiv(id, dataRole) {
 function getElement(type, attrs) {
     return $(document.createElement(type)).attr(attrs);
 }
+// will only work on mobile devices
+controller.log("mobile startup", 1);
+document.addEventListener("deviceready", controller.initialize, false);
+document.addEventListener("resume", controller.resume, false);
+
 function LocalData() {
     var loadAtStartup = ["user"]; 
     var allEntries = $.merge([], loadAtStartup);

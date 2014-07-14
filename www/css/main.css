@@ -14,7 +14,8 @@ html, body {
 }
 #lossTimer {
     width:100%;
-    padding:10px;
+    padding:1px;
+    margin:0;
     background-image: -webkit-gradient(
         linear,
         right top,
@@ -72,11 +73,13 @@ html, body {
     top:0;
     bottom:0;
     left:0;
+    right:0;
 }
 #youLoseBtn {
-    width:100%;
-    height:100%
-    right:0;
+    width:80%;
+    height:80%;
+    margin:20px 10%;
+
 }
 #btnShadow.clicked{
     -webkit-box-shadow : 0px 0px 0px 0px rgba(0,0,0,0);
@@ -99,6 +102,7 @@ html, body {
 }
 .navbar {
     height:100%;
+    background-color:rgb(233, 233, 233);
 }
 .navImgContainer {
     background-color:rgb(233, 233, 233);
@@ -108,10 +112,10 @@ html, body {
 }
 .navImg {
     min-width:50px;
-    max-width:100%;
+    width:20%;
     max-height:100%;
     height:100%;
-    width:100%;
+    float:left;
 }
 
 
