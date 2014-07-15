@@ -51,7 +51,9 @@ var controller = (function() {
     }
 
     function resume() {
-        alert("resuming!");
+        if(moreThan5Min(user.getLastLoss)) {
+            view.showBtn();
+        }
         return publicMethods;
     }
 
@@ -517,6 +519,9 @@ function createElement(type, options, content) {
     return element;
 }
 
+function moreThan5Min(time) {
+    return new Date().getTime - time < 1000 * 50 * 5;
+}
 // will only work on mobile devices
 controller.log("mobile startup", 1);
 document.addEventListener("deviceready", controller.initialize, false);
