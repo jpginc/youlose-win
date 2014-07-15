@@ -349,7 +349,7 @@ function PageLoader(conteroller) {
         }
 
         var fileType = ".png";
-        var postfix = ') no-repeat scroll center center / auto 100% transparent;"';
+        var postfix = ') no-repeat scroll center center / auto auto transparent;"';
         var prefix = "background:url(css/images/Button_";
         var buttons = ["info", "World", "Broadcast", "Friends", "More"];
         var footerOptions = {
@@ -453,7 +453,7 @@ function PageLoader(conteroller) {
         if(useSvg()) {
             fileType = ".svg";
         } 
-        var postfix = ') no-repeat scroll center center / auto 100% transparent;"';
+        var postfix = ') no-repeat scroll center center / auto auto transparent;"';
         var prefix = "background:url(css/images/Button_Lost";
 
         var imgOptions = {
