@@ -1,5 +1,5 @@
 var controller = (function() {
-    var errorReportingLevel = 0;
+    var errorReportingLevel = 2;
     var isInitialized = false;
     var view;
     var localData;
@@ -68,8 +68,29 @@ var controller = (function() {
     function doLoss() {
         log("lose!", 1);
         view.pressBtn(user.getLastLoss());
-        user.lose();
+        getLocation(user.lose, user.lose);
     }
+    function getLocation(successCallback, errorCallback) {
+        var options = { 
+            maximumAge: 3000, 
+            timeout: 5000, 
+            enableHighAccuracy: true 
+        };
+        if(navigator.geolocation) {
+            var locationTimeoutFix = setTimeout(errorCallback, 7000);
+
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                clearTimeout(locationTimeoutFix);
+                successCallback(pos);
+            }, function(error) {
+                clearTimeout(locationTimeoutFix);
+                errorCallback(error);
+            });
+        } else {
+            errorCallback();
+        }
+    }
+
     function getLastLoss() {
         return user.getLastLoss();
     }
@@ -90,18 +111,25 @@ var controller = (function() {
 })();
 function User(controller) {
     var data;
+    var northPole = [90,90];
+    var myself = this;
 
     this.loadData = function(toLoad) {
-        data = toLoad ? $.parseJSON(toLoad) : newUser();
+        try {
+            data = toLoad ? $.parseJSON(toLoad) : newUser();
+        } catch(err) {
+                controller.log("error parsing user json!", 8);
+                data = newUser();
+        }
         if(data === "undefined") {
-            controller.log("data is the string undefined. might be an error saving data", 9);
+            controller.log("data is the string undefined. might be an error saving data", 8);
         } 
         return this;
     };
 
     function newUser() {
         return { lastLoss: undefined,
-            lossHistory: ""
+            lossHistory: { count: 0 }
         };
     }
 
@@ -112,13 +140,19 @@ function User(controller) {
     this.getLastLoss = function() {
         return data ? data.lastLoss : undefined;
     };
-    this.lose = function() {
-        if(data && data.lastLoss) {
-            data.lossHistory = data.lossHistory ? 
-                data.lossHistory + "," + data.lastLoss : data.lastLoss;
+    this.lose = function(latlng) {
+        if(latlng && latlng.coords) {
+            console.log("yeessssss" + latlng.coords.latidude);
+            latlng = [latlng.coords.latitude, latlng.coords.latitude]; 
+        } else {
+            console.log("no latlng");
+            latlng = northPole;
         }
+
         data.lastLoss = new Date().getTime();
-        controller.save("user", this.toString());
+        index = data.lossHistory.count++;
+        data.lossHistory[index] = {time: data.lastLoss, location: latlng};
+        controller.save("user", myself.toString());
         return this;
     };
 
@@ -349,8 +383,8 @@ function PageLoader(conteroller) {
         }
 
         var fileType = ".png";
-        var postfix = ') no-repeat scroll center center / auto auto transparent;"';
-        var prefix = "background:url(css/images/Button_";
+        var postfix = ')"';
+        var prefix = "background-image:url(css/images/Button_";
         var buttons = ["info", "World", "Broadcast", "Friends", "More"];
         var footerOptions = {
             class: "footer",
@@ -453,8 +487,8 @@ function PageLoader(conteroller) {
         if(useSvg()) {
             fileType = ".svg";
         } 
-        var postfix = ') no-repeat scroll center center / auto auto transparent;"';
-        var prefix = "background:url(css/images/Button_Lost";
+        var postfix = ')"';
+        var prefix = "background-image:url(css/images/Button_Lost";
 
         var imgOptions = {
             alt: "youLOST Button",

@@ -2,7 +2,7 @@
 <widget id="com.jpgautomation.youlose" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
     <name>You Lose</name>
     <description>
-        windows version of YOU LOSE
+        android version of YOU LOSE
     </description>
     <author email="joshua.graham@jpgautomation.com" href="http://jpgautomation.com">
         Joshua Graham, Chris Ledwich
@@ -43,13 +43,17 @@
     <gap:splash gap:density="xhdpi" gap:platform="android" src="res/screen/android/screen-xhdpi-portrait.png" />
     <gap:splash gap:platform="blackberry" src="res/screen/blackberry/screen-225.png" />
     <gap:splash gap:platform="ios" height="480" src="res/screen/ios/screen-iphone-portrait.png" width="320" />
-    <gap:splash gap:platform="ios" height="960" src="res/screen/ios/screen-iphone-portrait-2x.png" width="640" />
+    <gap:splash gap:platform="ios" height="1136" src="res/screen/ios/screen-iphone-portrait-586h-2x.png" width="640" />
     <gap:splash gap:platform="ios" height="1024" src="res/screen/ios/screen-ipad-portrait.png" width="768" />
     <gap:splash gap:platform="ios" height="768" src="res/screen/ios/screen-ipad-landscape.png" width="1024" />
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
-    <icon src="icons/winphone/icon-62-tile.png" gap:platform="winphone" />
-    <icon src="icons/winphone/icon-173-tile.png" gap:platform="winphone" gap:role="background" />
     <access origin="http://127.0.0.1*" />
 
+    <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
+
+    <access origin="http://127.0.0.1*" />
     <gap:plugin name="org.apache.cordova.file" version="1.0.1" />
+    <preference name="iosPersistentFileLocation" value="Library" />
+    <preference name="AndroidPersistentFileLocation" value="Internal" />
+    <gap:plugin name="org.apache.cordova.geolocation" version="0.3.7" />
 </widget>
