@@ -499,7 +499,8 @@ function PageLoader(conteroller) {
         return str;
     }
     function useSvg() {
-        return Modernizr.svg && ! navigator.userAgent.match(/Windows/); 
+        return false;
+        //return Modernizr.svg && ! navigator.userAgent.match(/Windows/); 
     }
 
     return this;
