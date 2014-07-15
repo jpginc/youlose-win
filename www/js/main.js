@@ -30,7 +30,7 @@ var controller = (function() {
         log("page loader done", 1);
         pageLoader.loadPage("user", view.change);
         log("initializing done", 1);
-        view.lostBtn(pageLoader.lostBtn(user)).showBtn();
+        view.initLostBtn(pageLoader.lostBtn(user)).showBtn();
         return publicMethods;
     }
 
@@ -63,12 +63,15 @@ var controller = (function() {
         return localData.save(key, value);
     }
 
-    function doLoss(btn) {
+    function doLoss() {
         log("lose!", 1);
+        view.pressBtn(user.getLastLoss());
         user.lose();
-        view.pressBtn(btn);
     }
-    
+    function getLastLoss() {
+        return user.getLastLoss();
+    }
+
     var publicMethods = {
         log: log,
         initialize: initialize,
@@ -77,12 +80,12 @@ var controller = (function() {
         get: get,
         save: save,
         navClick: navClick,
-        doLoss: doLoss
+        doLoss: doLoss,
+        getLastLoss: getLastLoss
     };
 
     return publicMethods;
 })();
-
 function User(controller) {
     var data;
 
@@ -167,8 +170,19 @@ function niceString(dhmsArray) {
 function getNiceTimeString(from) {
     return niceString(dayHourMinSec(new Date().getTime(), from));
 }
+function niceStringGetTime(string) {
+    var array = string.split(":");
+    var now = new Date().getTime();
+    now -= parseInt(array[0]) * 24 * 60 * 60 * 1000;
+    now -= parseInt(array[1]) * 60 * 60 * 1000;
+    now -= parseInt(array[2]) * 60 * 1000;
+    now -= parseInt(array[3]) * 1000;
+    return now;
+}
 function View(controller) {
     var lostBtnHandle;
+    var lostBtnTimerHandle;
+    var intervalHandle;
     var myself = this;
 
     //a jquery dom object that is already inserted into the dom
@@ -180,25 +194,78 @@ function View(controller) {
         return this;
     };
 
-    this.lostBtn = function(btn) {
-        lostBtnHandle = btn;
-        //initialise the popup;
-        lostBtnHandle.popup();
+    this.pressBtn = function(lastLoss) {
+        clearInterval(intervalHandle);
+        lostBtnTimerHandle.html("do something cool!");
+        setTimeout(function() {
+            lostBtnHandle.popup("close");
+        }, 2000);
+/*
+        var difference = (new Date().getTime()) - lastLoss;
+        var step = Math.floor(difference / (1000/24));
+        var timeCoundownInterval = setInterval(function() {
+            timeCountdown(step);
+        }, 1000/24);
+*/
         return this;
     };
 
-    this.pressBtn = function(btn) {
-        btn.find("#btnShadow").addClass("clicked");
-        setTimeout(function() {
-            btn.find("#btnShadow").removeClass("clicked");
-            setTimeout(function() {
-                btn.popup("close");
-            }, 200);
-        },200);
+/*
+        var difference = (new Date().getTime()) - lastLoss;
+    function timeCountdown(step) {
+        var div;
+        console.log("counting down!");
+        var countingDown = niceStringGetTime(div.html());
+        countingDown -= step;
+        var difference = new Date().getTime() - countingDown;
+        if(difference < 0) {
+            div.html(getNiceTimeString(new Date().getTime())).toggleClass("countdown", false);
+            clearInterval(timeCoundownInterval);
+        } else {
+            div.html(getNiceTimeString(countingDown)).toggleClass("countDown");
+        }
+        return;
+    }
+*/
+
+    this.initLostBtn = function(btn) {
+        lostBtnHandle = btn;
+        lostBtnTimerHandle = btn.find("#lossTimer");
+        //initialise the popup
+        btn.popup();
+
+        //onclick
+        btn.on("vclick", "#youLoseBtn", function() { 
+            controller.doLoss();
+            });
+
+        //make it not draggable
+        btn.on("dragstart", "#youLoseBtn", function() {return false;});
+
+        btn.on("popupafteropen", function() {
+            clearInterval(intervalHandle);
+            intervalHandle = setInterval(function() {
+                updateTimer();
+            }, 1000);
+        });
+        btn.on("popupafterclose", function() {
+            clearInterval(intervalHandle);
+        });
+
         return this;
     };
+
+    function updateTimer() {
+        controller.log("timer is on" + getNiceTimeString(controller.getLastLoss()), 1);
+        lostBtnTimerHandle.html(createElement("p",{},getNiceTimeString(controller.getLastLoss())));
+        return;
+    }
+
 
     this.showBtn = function(dismiss) {
+        if(! lostBtnHandle) {
+            initLostBtn();
+        }
         var popupOptions = {
             dismissible: false,
             history: false,
@@ -279,8 +346,9 @@ function PageLoader(conteroller) {
             return navbarHtml;
         }
 
-        var postfix = '.png) no-repeat scroll center center / auto 100% transparent;"';
-        var prefix = 'background:url(css/images/Button_';
+        var fileType = ".png";
+        var postfix = ') no-repeat scroll center center / auto 100% transparent;"';
+        var prefix = "background:url(css/images/Button_";
         var buttons = ["info", "World", "Broadcast", "Friends", "More"];
         var footerOptions = {
             class: "footer",
@@ -297,11 +365,11 @@ function PageLoader(conteroller) {
 
         //populate the nav bar with nav images
         if(useSvg()) {
-            postfix = '.svg) no-repeat scroll center center / auto 100% transparent;"';
+            fileType = ".svg";
         } 
         for(var i = 0; i < buttons.length; i++) {
             var img;
-            imgOptions.style = prefix + buttons[i] + postfix;
+            imgOptions.style = prefix + buttons[i] + fileType + postfix;
             imgOptions["data-link-to"] = buttons[i];
             navHtml += createElement("div", imgOptions);
         }
@@ -326,7 +394,7 @@ function PageLoader(conteroller) {
         };
 
         var page  = createElement("div", pageOptions);
-        var content  = createElement("h1", {}, lossString);
+        var content  = createElement("p", {}, lossString);
         page = appendContent(page, content);
         return page;
 
@@ -372,42 +440,33 @@ function PageLoader(conteroller) {
     }
 
     this.lostBtn = function(user) {
+        var jqueryTimerDiv;
         var pageOptions = {
             "data-role": "popup",
             id: "youLosePopup",
             "data-overlay-theme": "b"
         };
 
+        var fileType = ".png";
+        if(useSvg()) {
+            fileType = ".svg";
+        } 
+        var postfix = ') no-repeat scroll center center / auto 100% transparent;"';
+        var prefix = "background:url(css/images/Button_Lost";
+
         var imgOptions = {
             alt: "youLOST Button",
-            src: "css/images/Button_Lost." + (useSvg() ? "svg" : "png"),
-            id: "youLoseBtn"
+            id: "youLoseBtn",
+            style: prefix + fileType + postfix
         };
 
         var popup = createElement("div", pageOptions);
         //var contentWrapper= createElement("div", {id: "btnShadow"});
-        var content = createElement("img", imgOptions);
+        var content = createElement("div", imgOptions);
         //contentWrapper = appendContent(contentWrapper, content);
         popup = $(appendContent(popup, [lossTimer(user), content]));
-        popup.popup();
-        popup.on("vclick","img", function() { 
-            controller.doLoss(popup);
-            });
-        popup.on("dragstart", "img", function() {return false;});
         return popup;
     };
-
-    function createElement(type, options, content) {
-        var element = "<" + type; 
-        for(var key in options) {
-            var obj = options[key];
-            if(options.hasOwnProperty(key)) {
-                element += " " + key + '="' + options[key] + '"';
-            }
-        }
-        element += ">" + (content || "")  + "</" + type + ">";
-        return element;
-    }
 
     function appendContent(existing, toAppend) {
         var regex = /<\/[^>]+>$/;
@@ -445,13 +504,18 @@ function PageLoader(conteroller) {
 
     return this;
 }
-function getDiv(id, dataRole) {
-    return getElement("div", {id: id, "data-role": dataRole}); 
+function createElement(type, options, content) {
+    var element = "<" + type; 
+    for(var key in options) {
+        var obj = options[key];
+        if(options.hasOwnProperty(key)) {
+            element += " " + key + '="' + options[key] + '"';
+        }
+    }
+    element += ">" + (content || "")  + "</" + type + ">";
+    return element;
 }
 
-function getElement(type, attrs) {
-    return $(document.createElement(type)).attr(attrs);
-}
 // will only work on mobile devices
 controller.log("mobile startup", 1);
 document.addEventListener("deviceready", controller.initialize, false);
