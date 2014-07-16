@@ -2,7 +2,7 @@
 <widget id="com.jpgautomation.youlose" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
     <name>You Lose</name>
     <description>
-        android version of YOU LOSE
+       You Lose world stats
     </description>
     <author email="joshua.graham@jpgautomation.com" href="http://jpgautomation.com">
         Joshua Graham, Chris Ledwich
@@ -56,4 +56,9 @@
     <preference name="iosPersistentFileLocation" value="Library" />
     <preference name="AndroidPersistentFileLocation" value="Internal" />
     <gap:plugin name="org.apache.cordova.geolocation" version="0.3.7" />
+
+    <gap:plugin name="org.apache.cordova.statusbar" version="0.1.4" />
+    <preference name="StatusBarOverlaysWebView" value="false" />
+    <preference name="StatusBarBackgroundColor" value="#000000" />
+
 </widget>

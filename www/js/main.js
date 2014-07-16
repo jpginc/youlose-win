@@ -23,6 +23,10 @@ var controller = (function() {
         if(isInitialized) {
             return false;
         }
+        if(youLoseDevice === "mobile") {
+            StatusBar.hide();
+
+        }
         isInitialized = true;
 
         log("initializing..", 1);
