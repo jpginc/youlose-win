@@ -88,9 +88,11 @@ html, body {
     -o-transition : all 0.2s linear;
     transition : all 0.2s linear;
 }
+/*
 .ui-page {
     -webkit-backface-visibility: hidden;
 }
+*/
 .footer {
     height:10%;
     min-height:50px;
@@ -119,4 +121,24 @@ html, body {
     background-size:contain;
     background-repeat:no-repeat;
     background-position:center;
+}
+#mapPage, #mapPageContent {
+    width:100%;
+    height:100%;
+}
+.popupMenuOuterWrapper, .popupMenuInnerWrapper {
+    width:100%;
+    position:absolute;
+}
+.popupMenuOuterWrapper {
+    height:95%;
+}
+
+.popupMenuInnerWrapper {
+    bottom:0px;
+}
+.popupMenuNavBuffer {
+    min-height:50px;
+    height:10%;
+    border:none;
 }
