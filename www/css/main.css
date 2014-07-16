@@ -126,6 +126,7 @@ body {
     background-position:center;
 }
 #mapPage, #mapPageContent {
+    -ms-touch-action:auto;
     width:100%;
     height:100%;
 }
