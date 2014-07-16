@@ -10,7 +10,11 @@ var controller = (function() {
     //priority 10 is the highest, 1 is the lowes
     function log(toLog, priority) {
         if(errorReportingLevel < priority) {
-            console.log(toLog);
+            if(youLoseDevice === "web") {
+                console.log(toLog);
+            } else {
+                alert(toLog);
+            }
         }
         return publicMethods;
     }
@@ -235,19 +239,24 @@ function View(controller) {
         }
         var page = split[1];
         var database = split[2];
+        var mapFunction = startMap;
 
-        if(typeof google === "undefined" || typeof google.maps === undefined) {
+        try {
             controller.loadPage("page-map");
             myself.loading("Loading Maps...");
-            controller.loadMapsAPI(function(data) {
-                var mapOptions = {
-                  center: new google.maps.LatLng(-34.397, 150.644),
-                  zoom: 8
-                };
-                var map = new google.maps.Map(document.getElementById("mapPageContent"), mapOptions);
-            }, loadAPIError);
+            controller.loadMapsAPI(mapFunction, loadAPIError);
+        } catch(err) {
+            controller.log("loding gogole maps failed!", 9);
         }
     });
+
+    function startMap() {
+        var mapOptions = {
+          center: new google.maps.LatLng(-34.397, 150.644),
+          zoom: 8
+        };
+        var map = new google.maps.Map(document.getElementById("mapPageContent"), mapOptions);
+    }
 
     function loadAPIError(reason) {
         controller.log("api load error", 4);
@@ -449,6 +458,7 @@ function PageLoader(conteroller) {
     this.loadMapsAPI = function(success, fail) {
         if(typeof google !== "undefined" && typeof google.maps !== undefined) {
             //the api is already loaded
+            success();
             return this;
         }
 
@@ -688,6 +698,7 @@ function moreThan5Min(time) {
     return new Date().getTime - time < 1000 * 50 * 5;
 }
 // will only work on mobile devices
+var youLoseDevice = "mobile";
 controller.log("mobile startup", 1);
 document.addEventListener("deviceready", controller.initialize, false);
 document.addEventListener("resume", controller.resume, false);
