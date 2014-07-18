@@ -42,6 +42,29 @@ function replaceClass(className, newClassName, element) {
     }
 }
 
+function createRow(content, type, options ) {
+    if(typeof type  !== "string") {
+        type = "td";
+    }
+    var data = "";
+    for(var i = 0; i < content.length; i++) {
+        data += createElement(type, options, content[i]);
+    }
+    return createElement("tr", {}, data);
+}
+function historyTable(history) {
+    var rows = { 
+        count: "Total Losses",
+    };
+    var tableContents = "";
+    var tableHeader = createRow(["Loss Data"], "th", {colspan:42});
+    for(var key in rows) {
+        if(history.hasOwnProperty(key)) {
+            tableContents += createRow([rows[key], history[key]]);
+        }
+    }
+    return createElement("table", {}, tableHeader + tableContents);
+}
 try {
 var controller = (function() {
     var errorReportingLevel = 3;
@@ -81,9 +104,9 @@ var controller = (function() {
             }
         }
 
-        pageLoader = new PageLoader(publicMethods);
         localData = new LocalData();
         user = new User(publicMethods);
+        pageLoader = new PageLoader(publicMethods);
         view = new View(publicMethods, pageLoader.initialize());
         view.initialize();
         log("initializing done", 5);
@@ -151,6 +174,9 @@ var controller = (function() {
     function loadMapsAPI(success, fail) {
         return pageLoader.loadMapsAPI(success, fail);
     }
+    function getUserHistory() {
+        return user.getHistory();
+    }
 
     var publicMethods = {
         log: log,
@@ -162,8 +188,8 @@ var controller = (function() {
         navClick: navClick,
         doLoss: doLoss,
         getLastLoss: getLastLoss,
-        loadMapsAPI: loadMapsAPI
-
+        loadMapsAPI: loadMapsAPI,
+        getUserHistory: getUserHistory,
     };
 
     return publicMethods;
@@ -172,28 +198,28 @@ var controller = (function() {
     alert("script crash! " + err);
 
 }
-function PageLoader(conteroller) {
+function PageLoader(controller) {
     var myself = this;
     var mapKey = "AIzaSyAoCSG9pGFlEtsgoz3XoHejO9-uODNLeG8";
     var googleMapsScriptHandle;
     var appContainer = document.getElementById("appContainer");
     var pages = { 
         page: {
-            error: errorPage(),
-            user: infoPage(),
-            map: mapPage(),
+            error: {dom:errorPage()},
+            user: {dom:infoPage(),btn:"page-user-btn"},
+            map:{dom:mapPage()},
         },
         menu: {
-            world: worldStats(),
+            world: {dom:worldStats(),btn:"menu-world-btn"},
         },
         submenu: {
         },
         widget: {
-            footer: navbar(),
-            loading: loading(),
+            footer: {dom:navbar()},
+            loading: {dom:loading()},
         },
         popup: {
-            lostBtn: lostBtn(),
+            lostBtn: {dom:lostBtn()},
         }
     };
 
@@ -202,7 +228,7 @@ function PageLoader(conteroller) {
     this.initialize = function() {
         for(var type in pages) {
             for(var key in pages[type]) {
-                pages[type][key] = insertToDom(pages[type][key], type, key,  document.body);
+                pages[type][key].dom = insertToDom(pages[type][key].dom, type, key,  document.body);
             }
         }
         return pages;
@@ -277,13 +303,18 @@ function PageLoader(conteroller) {
         };
         var options = {
             id: "worldPage",
-            class: "page"
+            class: "menu"
         };
+        /*
         var page = getPage(options, createElement("div", {class:"popupMenuOuterWrapper"},
                     createElement("div", {class:"popupMenuInnerWrapper"},
                         getHeader("worldPageHeader", "World Stats") +
                         getContent("worldPageContent", getList(menuItems)) + 
                         createElement("div", {class:"popupMenuNavBuffer"}))));
+        */
+        var page = getPage(options, getHeader("worldPageHeader", "World Stats") +
+                        getContent("worldPageContent", getList(menuItems)) +
+                        createElement("div", {class:"menuNavBuffer"}));
         return page;
     }
 
@@ -359,7 +390,7 @@ function PageLoader(conteroller) {
             var img;
             imgOptions.style = prefix + buttons[key] + postfix;
             imgOptions["data-link-to"] = key;
-            imgOptions.id = buttons[key] + "-btn";
+            imgOptions.id = key + "-btn";
             navHtml += createElement("div", imgOptions);
             }
         }
@@ -389,7 +420,8 @@ function PageLoader(conteroller) {
         };
         var page = getPage(options,
                 getHeader("infoPageHeader", "My Page") + 
-                getContent("infoPageContent", "<p>This is where something will go</p>"));
+                getContent("infoPageContent", 
+                    createElement("p", {}, controller.getUserHistory())));
         return page;
     }
     function loading() {
@@ -541,6 +573,10 @@ function User(controller) {
     this.getLastLoss = function() {
         return data ? data.lastLoss : undefined;
     };
+
+    this.getHistory = function() {
+        return data ? historyTable(data.lossHistory) : undefined;
+    };
     this.lose = function(latlng) {
         if(latlng && latlng.coords) {
             console.log("yeessssss" + latlng.coords.latidude);
@@ -570,6 +606,10 @@ function View(controller, pages) {
         popup: null,
         menu: null,
     };
+    var transitions = {
+        menu: {on:{type:"maxHeight",val:"100%"},off:{type:"maxHeight",val:"0px"}},
+        page: {on:{type:"display",val:"block"},off:{type:"display",val:"none"}},
+    };
     var timers = {
         lostTimer : {interval:1000, callback:timerUpdator},
         loading : {interval:333, callback:loadingUpdator}
@@ -597,19 +637,10 @@ function View(controller, pages) {
         name = name.split("-");
         var type = name[0];
         var key = name[1];
-        selectBtn(this);
 
         activate(type, key);
         return myself;
     };
-
-    function selectBtn(btn) {
-        if(selectedBtn) {
-            removeClass("selected", selectedBtn);
-        }
-        selectedBtn = btn;
-        addClass("selected", btn);
-    }
 
     this.changeTo = function(type, key) {
         activate(type, key);
@@ -620,9 +651,9 @@ function View(controller, pages) {
         stopTimer(timers.lostTimer);
 
         lostTimerText("do something cool!");
+        activate("page", "user");
         setTimeout(function() {
             deactivate("popup");
-            activate("page", "user");
         }, 2000);
 
         return myself;
@@ -658,40 +689,69 @@ function View(controller, pages) {
     function deactivate(type) {
         if(active[type]) {
             controller.log("i am deactivting!", 4);
-            active[type].style.display = "none";
+            if(transitions[type]) {
+                active[type].style[transitions[type].off.type] = transitions[type].off.val;
+            } else {
+                active[type].style.display = "none";
+            }
         }
         active[type] = null;
     }
     function activate(type, key) {
+        //if your changing pages then drop menus
         switch(type) {
             case "page": 
-                deactivate("popup");
                 deactivate("menu");
                 break;
             case "menu":
-                if(active.menu === pages[type][key]) {
+                //if you click the menu twice then close it 
+                if(active.menu === pages[type][key].dom) {
                     deactivate("menu");
-                return;
+                    deselectBtn();
+                    return;
                 }
         }
+        //does the requested page exist?
         if(pages[type] === undefined || pages[type][key] === undefined) {
             console.log("page doesnt exist error page");
             type = "page";
             key = "error";
         }
 
-        if(active[type] && active[type] !== pages[type][key]) {
+
+        //display the page before removing the other
+        var newPage = pages[type][key].dom;
+        if(transitions[type]) {
+            newPage.style[transitions[type].on.type] = transitions[type].on.val;
+        } else {
+            newPage.style.display = "block";
+        }
+        if(active[type] && active[type] !== pages[type][key].dom) {
             deactivate(type);
         }
 
-        active[type] = pages[type][key];
-        active[type].style.display = "block";
+        //highlight the associated button (if any)
+        if(selectedBtn && selectedBtn !== pages[type][key].btn) {
+            deselectBtn();
+        }
+        if(pages[type][key].btn) {
+            selectedBtn = document.getElementById(pages[type][key].btn);
+            addClass("selected", selectedBtn);
+        }
+        active[type] = newPage;
     }
     function startTimer(timerObj) {
         if(timerObj.timer) { 
             stopTimer(timerObj);
         }
         timerObj.timer = setInterval(timerObj.callback.bind(timerObj), timerObj.interval);
+    }
+
+    function deselectBtn() {
+        if(selectedBtn) {
+        removeClass("selected", selectedBtn);
+        selectedBtn = undefined;
+        }
     }
 
     function stopTimer(timerObj) {

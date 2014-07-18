@@ -75,15 +75,32 @@ html, body, .fullScreen {
     overflow:hidden;
     position:absolute;
 }
-.page-wrapper, .popup-wrapper, .widget-wrapper, .menu-wrapper, .widget-wrapper {
+.page-wrapper, .popup-wrapper, .widget-wrapper, .widget-wrapper {
     display:none;
 }
+.menu-wrapper{
+    width:100%;
+    bottom:0;
+    position:absolute;
+    max-height:0;
+    margin-bottom:10%;
+    overflow:hidden;
+    -webkit-transition: max-height 0.5s ease-out;
+    -moz-transition: max-height 0.5s ease-out;
+    -o-transition: max-height 0.5s ease-out;
+    transition: max-height 0.5s ease-out;
+}
+.menuNavBuffer{ 
+    height:10%;
+    width:100%;
+}
+
 .page-wrapper {
     height:90%;
     min-height:90%;
     width:100%;
     background-color:red;
-    overflow:scroll;
+    overflow:auto;
     position:absolute;
 }
 .page {
@@ -92,7 +109,7 @@ html, body, .fullScreen {
     max-width:100%;
 }
 .content {
-    font-size:20em;
+    font-size:2em;
 }
 
 .header, .footer {
@@ -117,7 +134,6 @@ html, body, .fullScreen {
     box-shadow: 1px -1px 2px 0px rgba(0,0,0,0.75);
 }
 .header {
-    padding:5px;
     height:5%;
     text-align:center;
     font-size:2em;
@@ -235,4 +251,29 @@ html, body, .fullScreen {
 
 .selected {
     background-color:#662D92;
+}
+h1 {
+    padding:10px 0;
+
+}
+/* 
+Generic Styling, for Desktops/Laptops 
+*/
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+}
+/* Zebra striping */
+tr:nth-of-type(odd) { 
+  background: #eee; 
+}
+th { 
+  background: #333; 
+  color: white; 
+  font-weight: bold; 
+}
+td, th { 
+  padding: 6px; 
+  border-bottom: 1px solid #ccc; 
+  text-align: left; 
 }
